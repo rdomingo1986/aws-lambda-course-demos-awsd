@@ -1,0 +1,14 @@
+{
+  "Records": [
+    {
+      "s3": {
+        "bucket": {
+          "name": "awsd-officialcourse-demo-aws-lambda"
+        },
+        "object": {
+          "key": "metallica.jpg"
+        }
+      }
+    }
+  ]
+}

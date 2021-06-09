@@ -1,0 +1,156 @@
+Resources:
+  QueueDemo:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: awsd-officialcourse-demo-aws-lambda-DLQ
+      Tags: 
+        - Key: Course
+          Value: AWSD
+
+  TableDemo:
+    Type: AWS::DynamoDB::Table
+    Properties: 
+      AttributeDefinitions: 
+        -
+          AttributeName: "awsRequestId"
+          AttributeType: "S"
+      BillingMode: PAY_PER_REQUEST
+      KeySchema: 
+        -
+          AttributeName: "awsRequestId"
+          KeyType: "HASH"
+      TableName: awsd-officialcourse-demo-aws-lambda
+      Tags: 
+        - Key: Course
+          Value: AWSD
+  
+  FunctionDemoRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies: 
+        - PolicyName: inline-policy
+          PolicyDocument:
+            Statement:
+              # - Effect: Allow
+              #   Action:
+              #     - dynamodb:PutItem
+              #   Resource: !GetAtt TableDemo.Arn
+              # - Effect: Allow
+              #   Action:
+              #     - s3:GetObject
+              #   Resource:
+              #     - arn:aws:s3:::awsd-officialcourse-demo-aws-lambda/
+              #     - arn:aws:s3:::awsd-officialcourse-demo-aws-lambda/*
+              - Effect: Allow
+                Action:
+                  - sqs:SendMessage
+                Resource: !GetAtt QueueDemo.Arn
+      RoleName: awsd-officialcourse-demo-aws-lambda
+      Tags: 
+        - Key: Course
+          Value: AWSD
+
+  FunctionDemo:
+    Type: AWS::Lambda::Function
+    Properties:
+      Layers:
+        - arn:aws:lambda:us-east-1:864613434505:layer:aws-sdk-v3:1
+      Code: 
+        ZipFile: |
+          const { S3 } = require('@aws-sdk/client-s3');
+
+          const s3 = new S3({
+            region: 'us-east-1'
+          });
+
+          const { DynamoDB } = require('@aws-sdk/client-dynamodb');
+
+          const dynamodb = new DynamoDB({
+            region: 'us-east-1'
+          });
+
+          const util = require('util');
+
+          exports.handler = async function (event, context) {
+            try {
+              var responseS3 = await s3.getObject({
+                Bucket: event.Records[0].s3.bucket.name,
+                Key: event.Records[0].s3.object.key
+              });
+              var responseDynamoDB = await  dynamodb.putItem({
+                TableName: process.env.table_name,
+                Item: {
+                  'awsRequestId': {
+                    S: context.awsRequestId
+                  },
+                  'imageName': {
+                    S: event.Records[0].s3.object.key
+                  },
+                  'bandMembers': {
+                    M: {
+                      'members': { S: responseS3.Metadata.members },
+                      'gender': { S: responseS3.Metadata.gender },
+                      'band': { S: responseS3.Metadata.band }
+                    }
+                  }
+                }
+              });
+              console.log(util.inspect([responseS3, responseDynamoDB], false, null, true));
+            } catch (err) {
+              console.log(util.inspect(err, false, null, true));
+              return err;
+            }
+          }
+      DeadLetterConfig:
+        TargetArn: !GetAtt QueueDemo.Arn
+      Environment: 
+        Variables:
+          table_name: !Ref TableDemo
+      FunctionName: awsd-officialcourse-demo-aws-lambda
+      Handler: index.handler
+      MemorySize: 128
+      PackageType: Zip
+      Role: !GetAtt FunctionDemoRole.Arn
+      Runtime: nodejs12.x
+      Tags: 
+        - Key: Course
+          Value: AWSD
+      Timeout: 5
+
+  FunctionDemoInvocationPermission:
+    Type: AWS::Lambda::Permission
+    Properties: 
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref FunctionDemo
+      Principal: s3.amazonaws.com
+      SourceAccount: !Ref AWS::AccountId
+      SourceArn: !GetAtt BucketDemo.Arn
+
+  BucketDemo:
+    Type: AWS::S3::Bucket
+    Properties: 
+      BucketName: awsd-officialcourse-demo-aws-lambda
+      # NotificationConfiguration: 
+      #   LambdaConfigurations:
+      #     - Event: s3:ObjectCreated:*
+      #       Filter:
+      #         S3Key:
+      #           Rules:
+      #             - Name: suffix
+      #               Value: .jpg
+      #       Function: !GetAtt FunctionDemo.Arn
+      Tags: 
+        - Key: Course
+          Value: AWSD
+
+  
