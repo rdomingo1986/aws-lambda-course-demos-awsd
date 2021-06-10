@@ -41,16 +41,16 @@ Resources:
         - PolicyName: inline-policy
           PolicyDocument:
             Statement:
-              # - Effect: Allow
-              #   Action:
-              #     - dynamodb:PutItem
-              #   Resource: !GetAtt TableDemo.Arn
-              # - Effect: Allow
-              #   Action:
-              #     - s3:GetObject
-              #   Resource:
-              #     - arn:aws:s3:::awsd-officialcourse-demo-aws-lambda/
-              #     - arn:aws:s3:::awsd-officialcourse-demo-aws-lambda/*
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                Resource: !GetAtt TableDemo.Arn
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource:
+                  - arn:aws:s3:::awsd-officialcourse-demo-aws-lambda/
+                  - arn:aws:s3:::awsd-officialcourse-demo-aws-lambda/*
               - Effect: Allow
                 Action:
                   - sqs:SendMessage
