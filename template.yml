@@ -1,0 +1,32 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  function
+
+Transform:
+- AWS::Serverless-2016-10-31
+
+Resources:
+  handlerFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: function.handler
+      Runtime: nodejs14.x
+      MemorySize: 128
+      Timeout: 100
+      Description: A simple example includes a HTTP get method to get all items from a DynamoDB table.
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref SampleTable
+      Environment:
+        Variables:
+          table_name: !Ref SampleTable
+
+  Courses:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      PrimaryKey:
+        Name: awsRequestId
+        Type: String
+      ProvisionedThroughput:
+        ReadCapacityUnits: 2
+        WriteCapacityUnits: 2
