@@ -8,7 +8,7 @@ const run = async function () {
   try {
     var response = await lambda.invoke({
       FunctionName: 'awsd-officialcourse-demo-aws-lambda',
-      InvocationType: 'RequestResponse', //Event
+      InvocationType: 'Event', //Event
       Payload: JSON.stringify({
         message: 'Hello World!!!'
       })
